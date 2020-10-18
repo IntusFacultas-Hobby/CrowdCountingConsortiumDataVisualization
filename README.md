@@ -10,12 +10,13 @@ https://virtualenv.pypa.io/en/latest/
 
 ### Requirements:
 
-Python==3.6.X
-pip==20.2.4
-django==3.1.2
-django-webpack-loader==0.6.0
-djangorestframework==3.12.1
-django-environ>=0.4.5
+- Sqlite==3.x
+- Python==3.6.x
+- pip==20.2.4
+- django==3.1.2
+- django-webpack-loader==0.6.0
+- djangorestframework==3.12.1
+- django-environ>=0.4.5
 
 ### Steps
 

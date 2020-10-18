@@ -43,7 +43,7 @@ class Command(BaseCommand):
                 "CIVIL RIGHTS", "BLACKLIVESMATTER",
                 "BLACK LIVES MATTER", "POLICE BRUTALITY",
                 "POLICE VIOLENCE", "BREONNA TAYLOR",
-                "GEORGE FLOYD", "JUSTICE"
+                "GEORGE FLOYD", "JUSTICE",
             ]
             for claim in valid_claims:
                 if claim in value:
