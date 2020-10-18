@@ -64,6 +64,9 @@ The CSV must have the headers in the following order:
 And the CSV files must be in the root directory of the project, by year, named by month. Ergo
 
 ```
+public/...
+core/...
+protestdata/...
 2018/
     January.csv
     February.csv
