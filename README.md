@@ -63,10 +63,12 @@ The CSV must have the headers in the following order:
 
 And the CSV files must be in the root directory of the project, by year, named by month. Ergo
 
+```
 2018/
-January.csv
-February.csv
-March.csv
+    January.csv
+    February.csv
+    March.csv
+```
 
 At which point, you can run `python manage.py stagedata --start 2018 --end 2020` with the years updated to match
 the timeframe you wish to injest.
