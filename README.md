@@ -22,10 +22,62 @@ https://virtualenv.pypa.io/en/latest/
 
 Perform the following steps in the console of your choice. I used Bash.
 
-**Note:** If you want to update the data available, simple add folders by year, with .csv files with appropriate names
-(ergo: January, February, March, etc.)
-
 1. Activate your virtualenv if you're using one.
 2. Change env.example to `.env`, **change the secret key**, then source your .env by entering the command `source .env`
 3. Run `pip install -r requirements.txt`
 4. Run `python manage.py migrate`
+5. Run `python manage.py stagedata --start 2019 --end 2020`
+
+## Data Ingest Instructions
+
+This project can handle any set of years of data, assuming the data follows the following format:
+
+The CSV must have the headers in the following order:
+
+- CityTown
+- Location
+- County
+- StateTerritory
+- Country
+- Date
+- EstimateText
+- EstimateLow
+- BestGuess
+- EstimateHigh
+- AdjustedLow
+- AdjustedHigh
+- Actor
+- Claim
+- Pro(2)/Anti(1)
+- EventType
+- ReportedArrests
+- ReportedParticipantInjuries
+- ReportedPoliceInjuries
+- ReportedPropertyDamage
+- TownsCities
+- Events
+- Source1
+- Source2
+- Source3
+- Misc.
+
+And the CSV files must be in the root directory of the project, by year, named by month. Ergo
+
+2018/
+January.csv
+February.csv
+March.csv
+
+At which point, you can run `python manage.py stagedata --start 2018 --end 2020` with the years updated to match
+the timeframe you wish to injest.
+
+**What to do if you experience an error**: Since the dataset is manually entered, sometimes we find some odd
+numbers showing up in numerical columns. If you experience an error similar to:
+
+```
+django\db\models\fields\__init__.py", line 1774, in get_prep_value
+    return int(value)
+ValueError: invalid literal for int() with base 10: 'see above'
+```
+
+You'll need to go into `core/management/commands/stagedata.py`, `line 33` and add the offending data to the blacklist.
