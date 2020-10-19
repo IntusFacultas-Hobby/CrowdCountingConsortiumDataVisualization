@@ -87,4 +87,4 @@ django\db\models\fields\__init__.py", line 1774, in get_prep_value
 ValueError: invalid literal for int() with base 10: 'see above'
 ```
 
-You'll need to go into `core/management/commands/stagedata.py`, `line 33` and add the offending data to the blacklist.
+You'll need to go into `core/management/commands/stagedata.py`, `line 60` and add the offending data to the blacklist.

@@ -1,6 +1,6 @@
 from django.views.generic.base import TemplateView
 from django.shortcuts import render
-from django.db.models import Max, Min
+from django.db.models import Max, Min, Count, Sum
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
@@ -8,6 +8,7 @@ from core.models import DataPoint
 from core.serializers import DataPointSerializer
 from django.core.paginator import Paginator, EmptyPage
 from django.core.exceptions import FieldError
+import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -153,6 +154,73 @@ class ViewConfig(APIView):
         return Response(data, status=HTTP_200_OK)
 
 
+class GraphData(APIView):
+
+    def format_queryparams(self, query_params):
+        # this is necessary because DRF sets every query param to be a list, even if its only one value
+        # so we need to remove single value lists and replace them with just the value for dictionary unpacking
+        filters = {}
+        for param in query_params:
+            if "[]" in param:
+                filters[param[0:-2]] = query_params.getlist(param)
+            else:
+                filters[param] = query_params[param]
+        return filters
+
+    def get(self, request):
+        field_x = request.query_params.get("fieldX")
+        field_y = request.query_params.get("fieldY", None)
+        filters = json.loads(request.query_params.get('filters'))
+        del filters["order_by"]
+        del filters["page_size"]
+        del filters["page"]
+        queryset = DataPoint.objects.all()
+        if "exclude" in filters:
+            exclude_dict = json.loads(filters["exclude"])
+            for key in exclude_dict:
+                expression = {}
+                expression[key] = exclude_dict[key]
+                queryset = queryset.exclude(**expression)
+            del filters["exclude"]
+        queryset = queryset.filter(
+            **self.format_queryparams(filters)
+        )
+
+        if field_y is None:
+            data_x = queryset.values(field_x).annotate(
+                count=Count('pk', distinct=True)).order_by()
+            # we aren't cross graphing
+            # ergo just city (events per city)
+            return Response({
+                "x": data_x
+            }, status=HTTP_200_OK)
+        else:
+            # we are cross graphing
+            # ergo city vs estimate_best
+
+            # if field_y is numerical:
+            # .annotate(num=Sum('estimate_low'))
+            numerical = [
+                "estimate_low",
+                "estimate_best",
+                "estimate_high",
+                "adjusted_low",
+                "adjusted_high",
+                "reported_arrests",
+                "reported_participant_injuries",
+                "reported_police_injuries",
+                "reported_property_damage",
+            ]
+            if field_y in numerical:
+                data_y = queryset.values(field_x).annotate(y=Sum(field_y))
+            else:
+                data_y = queryset.values(field_x).annotate(y=Count(field_y))
+            return Response({
+                "x": [],
+                "y": data_y
+            })
+
+
 class DataPointsApiView(APIView):
     """ This endpoint returns a list of data points that match accepted filters.
 
@@ -185,7 +253,6 @@ class DataPointsApiView(APIView):
                 filters[param[0:-2]] = query_params.getlist(param)
             else:
                 filters[param] = query_params[param]
-        print(filters)
         return filters
 
     def get(self, request):
@@ -212,9 +279,16 @@ class DataPointsApiView(APIView):
                 del query_params["page"]
             else:
                 page = 1
-
+            queryset = DataPoint.objects.all()
+            if "exclude" in query_params:
+                exclude_dict = json.loads(query_params["exclude"])
+                for key in exclude_dict:
+                    expression = {}
+                    expression[key] = exclude_dict[key]
+                    queryset = queryset.exclude(**expression)
+                del query_params["exclude"]
             # filter, order by, and paginate.
-            queryset = DataPoint.objects.filter(
+            queryset = queryset.filter(
                 **self.format_queryparams(query_params)).order_by(order_by)
             paginator = Paginator(queryset, page_size)
 

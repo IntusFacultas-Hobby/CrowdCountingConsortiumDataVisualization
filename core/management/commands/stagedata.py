@@ -56,6 +56,7 @@ class Command(BaseCommand):
         # sometimes when they lack data they leave it blank. Sometimes they input N/A.
         # Sometimes they input unknown number. sometimes they input numerous. Who knows at this point
 
+        #
         blacklist = ["N/A", "", "unknown number", "numerous", "see above"]
         if value is not None and value not in blacklist:
             return value
