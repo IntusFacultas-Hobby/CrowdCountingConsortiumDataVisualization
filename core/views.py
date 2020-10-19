@@ -34,25 +34,27 @@ class ViewConfig(APIView):
     def get(self, request):
 
         # attendance lows and highs
-        minAttendanceLow, maxAttendanceLow = self.retrieve_min_max(
+        estimate_low_min, estimate_low_max = self.retrieve_min_max(
             "estimate_low")
-        minAttendanceBest, maxAttendanceBest = self.retrieve_min_max(
+        estimate_best_min, estimate_best_max = self.retrieve_min_max(
             "estimate_best")
-        minAttendanceHigh, maxAttendanceHigh = self.retrieve_min_max(
+        estimate_high_min, estimate_high_max = self.retrieve_min_max(
             "estimate_high")
 
         # adjusted lows and highs
-        minAdjustedLow, maxAdjustedLow = self.retrieve_min_max("adjusted_low")
-        minAdjustedHigh, maxAdjustedHigh = self.retrieve_min_max(
+        adjusted_low_min, adjusted_low_max = self.retrieve_min_max(
+            "adjusted_low")
+        adjusted_high_min, adjusted_high_max = self.retrieve_min_max(
             "adjusted_high")
 
         # arrests, injuries, property damage
-        minArrests, maxArrests = self.retrieve_min_max("reported_arrests")
-        minParticipantInjuries, maxParticipantInjuries = self.retrieve_min_max(
+        reported_arrests_min, reported_arrests_max = self.retrieve_min_max(
+            "reported_arrests")
+        reported_participant_injuries_min, reported_participant_injuries_max = self.retrieve_min_max(
             "reported_participant_injuries")
-        minPoliceInjuries, maxPoliceInjuries = self.retrieve_min_max(
+        reported_police_injuries_min, reported_police_injuries_max = self.retrieve_min_max(
             "reported_police_injuries")
-        minPropertyDamage, maxPropertyDamage = self.retrieve_min_max(
+        reported_property_damage_min, reported_property_damage_max = self.retrieve_min_max(
             "reported_property_damage")
 
         data = {
@@ -128,25 +130,25 @@ class ViewConfig(APIView):
             ],
             "stateOptions": DataPoint.objects.order_by().values_list("state", flat=True).distinct(),
             "eventTypeOptions": DataPoint.objects.order_by().values_list("event_type", flat=True).distinct(),
-            "minAttendanceLow": minAttendanceLow,
-            "maxAttendanceLow": maxAttendanceLow,
-            "minAttendanceBest": minAttendanceBest,
-            "maxAttendanceBest": maxAttendanceBest,
-            "minAttendanceHigh": minAttendanceHigh,
-            "maxAttendanceHigh": maxAttendanceHigh,
-            "minAdjustedLow": minAdjustedLow,
-            "maxAdjustedLow": maxAdjustedLow,
-            "minAdjustedHigh": minAdjustedHigh,
-            "maxAdjustedHigh": maxAdjustedHigh,
+            "estimate_low_min": estimate_low_min,
+            "estimate_low_max": estimate_low_max,
+            "estimate_best_min": estimate_best_min,
+            "estimate_best_max": estimate_best_max,
+            "estimate_high_min": estimate_high_min,
+            "estimate_high_max": estimate_high_max,
+            "adjusted_low_min": adjusted_low_min,
+            "adjusted_low_max": adjusted_low_max,
+            "adjusted_high_min": adjusted_high_min,
+            "adjusted_high_max": adjusted_high_max,
 
-            "minArrests": minArrests,
-            "maxArrests": maxArrests,
-            "minParticipantInjuries": minParticipantInjuries,
-            "maxParticipantInjuries": maxParticipantInjuries,
-            "minPoliceInjuries": minPoliceInjuries,
-            "maxPoliceInjuries": maxPoliceInjuries,
-            "minPropertyDamage": minPropertyDamage,
-            "maxPropertyDamage": maxPropertyDamage,
+            "reported_arrests_min": reported_arrests_min,
+            "reported_arrests_max": reported_arrests_max,
+            "reported_participant_injuries_min": reported_participant_injuries_min,
+            "reported_participant_injuries_max": reported_participant_injuries_max,
+            "reported_police_injuries_min": reported_police_injuries_min,
+            "reported_police_injuries_max": reported_police_injuries_max,
+            "reported_property_damage_min": reported_property_damage_min,
+            "reported_property_damage_max": reported_property_damage_max,
         }
         return Response(data, status=HTTP_200_OK)
 
@@ -179,10 +181,11 @@ class DataPointsApiView(APIView):
         # so we need to remove single value lists and replace them with just the value for dictionary unpacking
         filters = {}
         for param in query_params:
-            if len(query_params[param]) == 1:
-                filters[param] = query_params[param][0]
+            if "[]" in param:
+                filters[param[0:-2]] = query_params.getlist(param)
             else:
                 filters[param] = query_params[param]
+        print(filters)
         return filters
 
     def get(self, request):

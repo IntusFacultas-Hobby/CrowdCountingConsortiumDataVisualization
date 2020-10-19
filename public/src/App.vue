@@ -33,7 +33,7 @@
         <section-title>Filters</section-title>
         <button-group class="filters__buttongroup">
           <n-button small flavor="Light"  @click="showFilters = false">Close Filters</n-button>
-          <n-button small flavor="Primary" >Apply Filters</n-button>
+          <n-button small flavor="Primary" @click="retrieveItems" >Apply Filters</n-button>
           <n-button small flavor="Warning" @click="clearFilters" >Clear Filters</n-button>
         </button-group>
       </div>
@@ -99,98 +99,22 @@
         v-model="filters.claim__icontains">
       </vue-input>
       <number-range
-        :max="maxAttendanceLow"
-        :min="minAttendanceLow"
+        v-for="(numberrange, index) in numberRanges"
+        :key="`numberrange-${index}`"
+        :max="fetchMinMax(numberrange.filter, 'max')"
+        :min="fetchMinMax(numberrange.filter, 'min')"
         :steps="[1]"
-        label="Attendance Low (Est.)"
-        name="attendanceLowEstimate"
-        @change="changeMinMax('estimate_low', $event)"
-        v-model="filters.estimate_low"
+        :label="numberrange.label"
+        :name="numberrange.filter"
+        @change="changeMinMax(numberrange.filter, $event)"
+        v-model="filters[numberrange.filter]"
       >
       </number-range>
-      <number-range
-        :max="maxAttendanceBest"
-        :min="minAttendanceBest"
-        :steps="[1]"
-        label="Attendance Best (Est.)"
-        name="attendanceBestEstimate"
-        v-model="filters.estimate_best"
-        @change="changeMinMax('estimate_best', $event)"
-      >
-      </number-range>
-      <number-range
-        :max="maxAttendanceHigh"
-        :min="minAttendanceHigh"
-        :steps="[1]"
-        label="Attendance High (Est.)"
-        name="attendanceHighEstimate"
-        v-model="filters.estimate_high"
-        @change="changeMinMax('estimate_high', $event)"
-      >
-      </number-range>
-      <number-range
-        :max="maxAdjustedLow"
-        :min="minAdjustedLow"
-        :steps="[1]"
-        label="Adjusted Low"
-        name="adjustedLowEstimate"
-        v-model="filters.adjusted_low"
-        @change="changeMinMax('adjusted_low', $event)"
-      >
-      </number-range>
-      <number-range
-        :max="maxAdjustedHigh"
-        :min="minAdjustedHigh"
-        :steps="[1]"
-        label="Adjusted High"
-        name="adjustedHighEstimate"
-        v-model="filters.adjusted_high"
-        @change="changeMinMax('adjusted_high', $event)"
-      >
-      </number-range>
-
-      <number-range
-        :max="maxArrests"
-        :min="minArrests"
-        :steps="[1]"
-        label="Reported Arrests"
-        name="ArrestsEstimate"
-        v-model="filters.reported_arrests"
-        @change="changeMinMax('reported_arrests', $event)"
-      >
-      </number-range>
-      <number-range
-        :max="maxParticipantInjuries"
-        :min="minParticipantInjuries"
-        :steps="[1]"
-        label="Reported Participant Injuries"
-        name="ParticipantInjuriesEstimate"
-        v-model="filters.reported_participant_injuries"
-        @change="changeMinMax('reported_participant_injuries', $event)"
-      >
-      </number-range>
-      <number-range
-        :max="maxPoliceInjuries"
-        :min="minPoliceInjuries"
-        :steps="[1]"
-        label="Reported Police Injuries"
-        name="PoliceInjuriesEstimate"
-        v-model="filters.reported_police_injuries"
-        @change="changeMinMax('reported_police_injuries', $event)"
-      >
-      </number-range>
-      <number-range
-        :max="maxPropertyDamage"
-        :min="minPropertyDamage"
-        :steps="[1]"
-        label="Reported Property Damage"
-        name="PropertyDamageEstimate"
-        v-model="filters.reported_property_damage"
-        @change="changeMinMax('reported_property_damage', $event)"
-      >
-      </number-range>
-
-
+      <button-group class="filters__buttongroup">
+        <n-button small flavor="Light"  @click="showFilters = false">Close Filters</n-button>
+        <n-button small flavor="Primary" @click="retrieveItems" >Apply Filters</n-button>
+        <n-button small flavor="Warning" @click="clearFilters" >Clear Filters</n-button>
+      </button-group>
     </div>
     <div
       :tabindex="showTableConfiguration ? '' : -1"
@@ -223,7 +147,16 @@
           <n-button flavor="Primary" @click="showFilters = true">Filters</n-button>
           <n-button flavor="Warning">Add Graph</n-button>
           <n-button flavor="Info" @click="showTableConfiguration = true">Configure Table</n-button>
-          <paginator :margin-pages="1" :page-range="3" @select="handleSelect" :page-count="pagination.numPages" :current-page="pagination.currentPage"></paginator>
+          <div class="pagination-controls">
+            <paginator 
+              :margin-pages="1"
+              :page-range="3"
+              @select="handleSelect"
+              :page-count="pagination.numPages"
+              :current-page="pagination.currentPage">
+            </paginator>
+            <text-content class="pagination-info">Showing {{pagination.start}} to {{pagination.end}} of {{pagination.total}}</text-content>
+          </div>
         </div>
         <vue-raw-table class="table">
           <template v-slot:header>
@@ -285,7 +218,7 @@ import SelectMe from "@IntusFacultas/select-me";
 import DatePicker from "@IntusFacultas/date-picker"
 import NumberRange from "@IntusFacultas/number-range";
 import Modal from "@IntusFacultas/modal"
-
+import moment from "moment"
 
 export default {
   name: 'App',
@@ -342,24 +275,20 @@ export default {
       eventTypeOptions: [],
 
       // these set the limits for the number ranges
-      minAttendanceLow: 0,
-      maxAttendanceLow: 0,
-      minAttendanceBest: 0,
-      maxAttendanceBest: 0,
-      minAttendanceHigh: 0,
-      maxAttendanceHigh: 0,
-      minAdjustedLow: 0,
-      maxAdjustedLow: 0,
-      minAdjustedHigh: 0,
-      maxAdjustedHigh: 0,
-      minArrests: 0,
-      maxArrests: 0,
-      minParticipantInjuries: 0,
-      maxParticipantInjuries: 0,
-      minPoliceInjuries: 0,
-      maxPoliceInjuries: 0,
-      minPropertyDamage: 0,
-      maxPropertyDamage: 0,
+      numberRanges: [
+        {filter: 'estimate_low', label: "Attendance Low (Est.)"},
+        {filter: 'estimate_best', label: "Attendance Best Guess (Est.)"},
+        {filter: 'estimate_high', label: "Attendance High (Est.)"},
+        {filter: 'adjusted_low', label: "Adjusted Low"},
+        {filter: 'adjusted_high', label: "Adjusted High"},
+        {filter: 'reported_arrests', label: "Reported Arrests"},
+        {filter: 'reported_participant_injuries', label: "Reported Participant Injuries"},
+        {filter: 'reported_police_injuries', label: "Reported Police Injuries"},
+        {filter: 'reported_property_damage', label: "Reported Property Damage"},
+      ],
+      defaultLimits: {
+        
+      },
 
       // these are two way bound to the various filters
       filters: {
@@ -372,42 +301,6 @@ export default {
         event_type__in: [],
         date__gte: "",
         date__lte: "",
-        estimate_low: {
-          lowerValue: "",
-          upperValue: "",
-        },
-        estimate_best: {
-          lowerValue: "",
-          upperValue: "",
-        },
-        estimate_high: {
-          lowerValue: "",
-          upperValue: "",
-        },
-        adjusted_low: {
-          lowerValue: "",
-          upperValue: "",
-        },
-        adjusted_high: {
-          lowerValue: "",
-          upperValue: "",
-        },
-        reported_arrests: {
-          lowerValue: "",
-          upperValue: "",
-        },
-        reported_participant_injuries: {
-          lowerValue: "",
-          upperValue: "",
-        },
-        reported_police_injuries: {
-          lowerValue: "",
-          upperValue: "",
-        },
-        reported_property_damage: {
-          lowerValue: "",
-          upperValue: "",
-        }
       },
 
       // these control what is shown in the table
@@ -439,6 +332,24 @@ export default {
         order_by: this.order_by,
         page: this.pagination.currentPage
       }
+      const self = this;
+      Object.keys(self.filters).forEach(key => {
+        if (typeof self.filters[key] == 'string' && self.filters[key] != '') {
+          default_filters[key] = self.filters[key]
+        }
+        else if (Array.isArray(self.filters[key]) && self.filters[key].length > 0) {
+          default_filters[key] = self.filters[key].map(x => x.value)
+        }
+        else if (typeof self.filters[key].lowerValue !== 'undefined') {
+          if (self.filters[key].lowerValue != self.defaultLimits[key].min && self.filters[key].upperValue != self.defaultLimits[key].max) {
+            default_filters[`${key}__gte`] = self.filters[key].lowerValue
+            default_filters[`${key}__lte`] = self.filters[key].upperValue
+          }
+        }
+        else if (moment.isMoment(self.filters[key])) {
+          default_filters[key] = self.filters[key].format("YYYY-MM-DD")
+        }
+      });
       return default_filters;
     }
   },
@@ -451,38 +362,37 @@ export default {
         this.shownHeaders.push(header)
       }
     },
+    fetchMinMax(filter, minMax) {
+      return this.defaultLimits?.[filter]?.[minMax] ?? 0
+    },
     changeMinMax(filter, value) {
-      this.filters[filter] = value;
+      if (value.lowerValue == 0 && value.upperValue == 0) {
+        // values are still loading, don't update.
+        return false;
+      }
+      this.filters[filter].lowerValue = value.lowerValue;
+      this.filters[filter].upperValue = value.upperValue;
     },
     clearFilters() {
       const self = this;
-      self.filters.city__icontains = "";
-      self.filters.location__icontains = "";
-      self.filters.county__icontains = "";
-      self.filters.actor__icontains = "";
-      self.filters.claim__icontains = "";
-      self.filters.state__in = [];
-      self.filters.event_type__in = [];
-      self.filters.date__gte = "";
-      self.filters.date__lte = "";
-      this.$set(self.filters.estimate_low,"lowerValue", self.minAttendanceLow);
-      this.$set(self.filters.estimate_low,"upperValue", self.maxAttendanceLow);
-      this.$set(self.filters.estimate_best,"lowerValue", self.minAttendanceBest);
-      this.$set(self.filters.estimate_best,"upperValue", self.maxAttendanceBest);
-      this.$set(self.filters.estimate_high,"lowerValue", self.minAttendanceHigh);
-      this.$set(self.filters.estimate_high,"upperValue", self.maxAttendanceHigh);
-      this.$set(self.filters.adjusted_low,"lowerValue", self.minAdjustedLow);
-      this.$set(self.filters.adjusted_low,"upperValue", self.maxAdjustedLow);
-      this.$set(self.filters.adjusted_high,"lowerValue", self.minAdjustedHigh);
-      this.$set(self.filters.adjusted_high,"upperValue", self.maxAdjustedHigh);
-      this.$set(self.filters.reported_arrests,"lowerValue", self.minArrests);
-      this.$set(self.filters.reported_arrests,"upperValue", self.maxArrests);
-      this.$set(self.filters.reported_participant_injuries,"lowerValue", self.minParticipantInjuries);
-      this.$set(self.filters.reported_participant_injuries,"upperValue", self.maxParticipantInjuries);
-      this.$set(self.filters.reported_police_injuries,"lowerValue", self.minPoliceInjuries);
-      this.$set(self.filters.reported_police_injuries,"upperValue", self.maxPoliceInjuries);
-      this.$set(self.filters.reported_property_damage,"lowerValue", self.minPropertyDamage);
-      this.$set(self.filters.reported_property_damage,"upperValue", self.maxPropertyDamage);
+      Object.keys(self.filters).forEach(key => {
+        if (typeof self.filters[key] == 'string') {
+          self.filters[key] = ''
+        }
+        else if (Array.isArray(self.filters[key])) {
+          self.filters[key] = []
+        }
+        else if (typeof self.filters[key].lowerValue !== 'undefined') {
+          this.$set(self.filters, key, {
+            lowerValue: self.defaultLimits[key].min,
+            upperValue: self.defaultLimits[key].max
+          })
+        }
+        else {
+          self.filters[key] = ''
+        }
+      });
+      this.retrieveItems();
     },
     openModal(item) {
         this.selectedItem = item;
@@ -534,55 +444,16 @@ export default {
 
         // set mins and maxes for the number ranges
         // estimate low
-        self.minAttendanceLow = response.data.minAttendanceLow;
-        self.filters.estimate_low.lowerValue = self.minAttendanceLow;
-        self.maxAttendanceLow = response.data.maxAttendanceLow;
-        self.filters.estimate_low.upperValue = self.maxAttendanceLow
-
-        // estimate best
-        self.minAttendanceBest = response.data.minAttendanceBest;
-        self.filters.estimate_best.lowerValue = self.minAttendanceBest;
-        self.maxAttendanceBest = response.data.maxAttendanceBest;
-        self.filters.estimate_best.upperValue = self.maxAttendanceBest
-
-        // estimate high
-        self.minAttendanceHigh = response.data.minAttendanceHigh;
-        self.filters.estimate_high.lowerValue = self.minAttendanceHigh;
-        self.maxAttendanceHigh = response.data.maxAttendanceHigh;
-        self.filters.estimate_high.upperValue = self.maxAttendanceHigh
-
-        // estimate low
-        self.minAdjustedLow = response.data.minAdjustedLow;
-        self.filters.adjusted_low.lowerValue = self.minAdjustedLow;
-        self.maxAdjustedLow = response.data.maxAdjustedLow;
-        self.filters.adjusted_low.upperValue = self.maxAdjustedLow
-
-        // adjusted high
-        self.minAdjustedHigh = response.data.minAdjustedHigh;
-        self.filters.adjusted_high.lowerValue = self.minAdjustedHigh;
-        self.maxAdjustedHigh = response.data.maxAdjustedHigh;
-        self.filters.adjusted_high.upperValue = self.maxAdjustedHigh
-
-        // injuries, property damage, etc.
-        self.minArrests = response.data.minArrests;
-        self.filters.reported_arrests.lowerValue = self.minArrests;
-        self.maxArrests = response.data.maxArrests;
-        self.filters.reported_arrests.upperValue = self.maxArrests;
-
-        self.minParticipantInjuries = response.data.minParticipantInjuries;
-        self.filters.reported_participant_injuries.lowerValue = self.minParticipantInjuries;
-        self.maxParticipantInjuries = response.data.maxParticipantInjuries;
-        self.filters.reported_participant_injuries.upperValue = self.maxParticipantInjuries;
-
-        self.minPoliceInjuries = response.data.minPoliceInjuries;
-        self.filters.reported_police_injuries.lowerValue = self.minPoliceInjuries;
-        self.maxPoliceInjuries = response.data.maxPoliceInjuries;
-        self.filters.reported_police_injuries.upperValue = self.maxPoliceInjuries;
-
-        self.minPropertyDamage = response.data.minPropertyDamage;
-        self.filters.reported_property_damage.lowerValue = self.minPropertyDamage
-        self.maxPropertyDamage = response.data.maxPropertyDamage;
-        self.filters.reported_property_damage.upperValue = self.maxPropertyDamage
+        self.numberRanges.forEach(numberrange => {
+          self.defaultLimits[numberrange.filter] = {
+            min: response.data[`${numberrange.filter}_min`],
+            max: response.data[`${numberrange.filter}_max`]
+          },
+          self.filters[numberrange.filter] = {
+            lowerValue: response.data[`${numberrange.filter}_min`],
+            upperValue: response.data[`${numberrange.filter}_max`],
+          }
+        })
       }).catch(() => {
         self.$alert({
           flavor: "Danger",
@@ -683,6 +554,13 @@ div.buttoncontainer {
   padding: .5em 0;
   flex-wrap: wrap;
   align-items: center;
+  .pagination-info {
+    margin-left: .5em;
+  }
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+  }
   & > button {
     max-width: 200px;
     flex: 1;
@@ -692,8 +570,8 @@ div.buttoncontainer {
   & > button:first-of-type {
     margin-left: 0;
   }
-  @media screen and (max-width: 800px){
-    & nav {
+  @media screen and (max-width: 956px){
+    & .pagination-controls {
       margin: 0 auto;
     }
     & > button {
