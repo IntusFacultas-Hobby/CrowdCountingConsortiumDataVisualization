@@ -3,6 +3,8 @@
 This is intended to consume the protest data found at https://sites.google.com/view/crowdcountingconsortium/view-download-the-data?authuser=0
 and filter for US-based BLM/anti-police brutality related protests, then display data visualization graphs and provide basic filtering.
 
+**Note:** This is not representative of my normal style of coding or attention to detail. This was a quick bodge project.
+
 ## Setup
 
 It's highly recommended you use `virtualenv`. If you aren't familiar with this technology, please refer to the documentation here:

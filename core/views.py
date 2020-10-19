@@ -1,11 +1,242 @@
-from django.shortcuts import render
-
-# Create your views here.
-
-
 from django.views.generic.base import TemplateView
+from django.shortcuts import render
+from django.db.models import Max, Min
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
+from core.models import DataPoint
+from core.serializers import DataPointSerializer
+from django.core.paginator import Paginator, EmptyPage
+from django.core.exceptions import FieldError
+import logging
+
+logger = logging.getLogger(__name__)
+# Create your views here.
 
 
 class MainView(TemplateView):
 
     template_name = "vue_app.html"
+
+
+class ViewConfig(APIView):
+    def retrieve_min_max(self, field):
+        minimum = DataPoint.objects.all().aggregate(
+            Min(f"{field}"))[f"{field}__min"]
+        if minimum is None:
+            minimum = 0
+        maximum = DataPoint.objects.all().aggregate(
+            Max(f"{field}"))[f"{field}__max"]
+        if maximum is None:
+            maximum = 0
+        return (minimum, maximum)
+
+    def get(self, request):
+
+        # attendance lows and highs
+        minAttendanceLow, maxAttendanceLow = self.retrieve_min_max(
+            "estimate_low")
+        minAttendanceBest, maxAttendanceBest = self.retrieve_min_max(
+            "estimate_best")
+        minAttendanceHigh, maxAttendanceHigh = self.retrieve_min_max(
+            "estimate_high")
+
+        # adjusted lows and highs
+        minAdjustedLow, maxAdjustedLow = self.retrieve_min_max("adjusted_low")
+        minAdjustedHigh, maxAdjustedHigh = self.retrieve_min_max(
+            "adjusted_high")
+
+        # arrests, injuries, property damage
+        minArrests, maxArrests = self.retrieve_min_max("reported_arrests")
+        minParticipantInjuries, maxParticipantInjuries = self.retrieve_min_max(
+            "reported_participant_injuries")
+        minPoliceInjuries, maxPoliceInjuries = self.retrieve_min_max(
+            "reported_police_injuries")
+        minPropertyDamage, maxPropertyDamage = self.retrieve_min_max(
+            "reported_property_damage")
+
+        data = {
+            "headers": [
+                {
+                    "value": "city",
+                    "text": "City"
+                },
+                {
+                    "value": "location",
+                    "text": "Location"
+                },
+                {
+                    "value": "county",
+                    "text": "County"
+                },
+                {
+                    "value": "state",
+                    "text": "State"
+                },
+                {
+                    "value": "date",
+                    "text": "Date"
+                },
+                {
+                    "value": "estimate_low",
+                    "text": "Estimate Low"
+                },
+                {
+                    "value": "estimate_best",
+                    "text": "Estimate Best"
+                },
+                {
+                    "value": "estimate_high",
+                    "text": "Estimate High"
+                },
+                {
+                    "value": "adjusted_low",
+                    "text": "Adjusted Low"
+                },
+                {
+                    "value": "adjusted_high",
+                    "text": "Adjusted High"
+                },
+                {
+                    "value": "actor",
+                    "text": "Actor"
+                },
+                {
+                    "value": "claim",
+                    "text": "Claim"
+                },
+                {
+                    "value": "event_type",
+                    "text": "Event Type"
+                },
+                {
+                    "value": "reported_arrests",
+                    "text": "Reported Arrests"
+                },
+                {
+                    "value": "reported_participant_injuries",
+                    "text": "Reported Participant Injuries"
+                },
+                {
+                    "value": "reported_police_injuries",
+                    "text": "Reported Police Injuries"
+                },
+                {
+                    "value": "reported_property_damage",
+                    "text": "Reported Property Damage"
+                },
+            ],
+            "stateOptions": DataPoint.objects.order_by().values_list("state", flat=True).distinct(),
+            "eventTypeOptions": DataPoint.objects.order_by().values_list("event_type", flat=True).distinct(),
+            "minAttendanceLow": minAttendanceLow,
+            "maxAttendanceLow": maxAttendanceLow,
+            "minAttendanceBest": minAttendanceBest,
+            "maxAttendanceBest": maxAttendanceBest,
+            "minAttendanceHigh": minAttendanceHigh,
+            "maxAttendanceHigh": maxAttendanceHigh,
+            "minAdjustedLow": minAdjustedLow,
+            "maxAdjustedLow": maxAdjustedLow,
+            "minAdjustedHigh": minAdjustedHigh,
+            "maxAdjustedHigh": maxAdjustedHigh,
+
+            "minArrests": minArrests,
+            "maxArrests": maxArrests,
+            "minParticipantInjuries": minParticipantInjuries,
+            "maxParticipantInjuries": maxParticipantInjuries,
+            "minPoliceInjuries": minPoliceInjuries,
+            "maxPoliceInjuries": maxPoliceInjuries,
+            "minPropertyDamage": minPropertyDamage,
+            "maxPropertyDamage": maxPropertyDamage,
+        }
+        return Response(data, status=HTTP_200_OK)
+
+
+class DataPointsApiView(APIView):
+    """ This endpoint returns a list of data points that match accepted filters.
+
+    Accepts any valid Django ORM filters.
+
+    Defaults:
+    order_by: -date
+    page_size: 50
+    page: 1
+
+    Returns:
+
+    {
+        "page": current page as int, 1-indexed,
+        "page_size": current page size as int,
+        "num_pages": the number of pages as int,
+        "start": the 1-index start of the page,
+        "end": the 1-index end of the page,
+        "total": the total number of objects that match filters,
+        "data": serialized array of data points
+    }
+    """
+
+    def format_queryparams(self, query_params):
+        # this is necessary because DRF sets every query param to be a list, even if its only one value
+        # so we need to remove single value lists and replace them with just the value for dictionary unpacking
+        filters = {}
+        for param in query_params:
+            if len(query_params[param]) == 1:
+                filters[param] = query_params[param][0]
+            else:
+                filters[param] = query_params[param]
+        return filters
+
+    def get(self, request):
+        try:
+            query_params = request.query_params.copy()
+            if "order_by" in query_params:
+                # we need to order the objects to have deterministic pagination, but we don't
+                # want to dictionary unpack order_by into the filter
+                order_by = query_params["order_by"]
+                del query_params["order_by"]
+            else:
+                order_by = "-date"
+
+            if "page_size" in query_params:
+                # we need the page size, but we don't want to dictionary unpack into the filter
+                page_size = query_params["page_size"]
+                del query_params["page_size"]
+            else:
+                page_size = 50
+
+            if "page" in query_params:
+                # we need the page, but we don't want to dictionary unpack into the filter
+                page = query_params["page"]
+                del query_params["page"]
+            else:
+                page = 1
+
+            # filter, order by, and paginate.
+            queryset = DataPoint.objects.filter(
+                **self.format_queryparams(query_params)).order_by(order_by)
+            paginator = Paginator(queryset, page_size)
+
+            # this can throw an error, caught on except EmptyPage
+            paginated_queryset = paginator.page(page)
+
+            # serialize to JSON and return
+            serializer = DataPointSerializer(
+                paginated_queryset.object_list, many=True)
+            response_data = {
+                "page": page,
+                "page_size": page_size,
+                "num_pages": paginator.num_pages,
+                "total": paginator.count,
+                "data": serializer.data,
+                "start": paginated_queryset.start_index(),
+                "end": paginated_queryset.end_index()
+            }
+            return Response(response_data, status=HTTP_200_OK)
+        except EmptyPage:
+            # it's possible the user requested an invalid page
+            return Response({"data": "Page has no data."}, status=HTTP_400_BAD_REQUEST)
+        except FieldError as e:
+            # some query param did not fit with the model schema
+            return Response({"data": str(e)}, status=HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(str(e))
+            return Response({"data": "Server error"}, status=HTTP_500_INTERNAL_SERVER_ERROR)

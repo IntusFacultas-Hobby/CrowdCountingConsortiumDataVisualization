@@ -42,7 +42,7 @@ INSTALLED_APPS = [
 
     # third party apps here
     'webpack_loader',
-
+    'rest_framework',
     # custom apps here
     "core"
 ]
@@ -89,8 +89,6 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
-
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
 
@@ -139,6 +137,20 @@ STATICFILES_FINDERS = (
 
 STATIC_URL = '/static/'
 
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+}
 
 VUE_FRONTEND_DIR = os.path.join(BASE_DIR, 'public')
 
