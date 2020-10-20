@@ -187,9 +187,7 @@ class GraphData(APIView):
         )
 
         if field_y is None:
-            order_by = "-count"
-            if field_x == 'date':
-                order_by = 'date'
+            order_by = field_x
             data_x = queryset.values(field_x).annotate(
                 count=Count('pk', distinct=True)).order_by(order_by)
             # we aren't cross graphing
@@ -214,9 +212,7 @@ class GraphData(APIView):
                 "reported_police_injuries",
                 "reported_property_damage",
             ]
-            order_by = "-y"
-            if field_x == 'date':
-                order_by = 'date'
+            order_by = field_x
             if field_y in numerical:
                 data_y = queryset.values(field_x).annotate(
                     y=Sum(field_y)).order_by(order_by)
