@@ -10,7 +10,7 @@
   "dependencies": {
     "@IntusFacultas/button": "^1.1.0",
     "@IntusFacultas/checkbox": "^1.0.2",
-    "@IntusFacultas/date-picker": "^1.4.0",
+    "@IntusFacultas/date-picker": "^1.4.1",
     "@IntusFacultas/input": "^1.4.3",
     "@IntusFacultas/list": "^2.0.7",
     "@IntusFacultas/map-filter": "^1.1.3",
