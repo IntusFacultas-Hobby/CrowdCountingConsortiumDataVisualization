@@ -19,6 +19,8 @@ https://virtualenv.pypa.io/en/latest/
 - django-webpack-loader==0.6.0
 - djangorestframework==3.12.1
 - django-environ>=0.4.5
+- npm==6.14.5
+- @vue/cli==4.5.6
 
 ### Steps
 
