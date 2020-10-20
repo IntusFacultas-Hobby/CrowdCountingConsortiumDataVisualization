@@ -61,7 +61,9 @@ class Command(BaseCommand):
 
         #
         blacklist = ["N/A", "", "unknown number",
-                     "numerous", "see above", "a few", "unknown", 'unclear', "several"]
+                     "numerous", "see above", "a few", "unknown",
+                     'unclear', "several", "unspecified", "few", "some",
+                     "a number", 'more than a dozen']
         if value is not None and value not in blacklist:
             return value
         return None
@@ -80,6 +82,7 @@ class Command(BaseCommand):
                 "AGAINST RACISM",
                 "DEFUND THE POLICE", "DEFUNDING POLICE",
                 "BLACK LIVES LOST", "ABOLISHING THE POLICE",
+                "RACIAL PROFILING",
             ]
 
             for claim in valid_claims:
