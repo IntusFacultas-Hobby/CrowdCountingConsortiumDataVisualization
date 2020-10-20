@@ -46,10 +46,20 @@
         <i class="fa fa-pie-chart fa-2x" aria-hidden="true"></i>
       </n-button>
       <n-button
+        title="Convert to Bar Chart"
+        flavor="Light"
+        small
+        v-if="showBarChart"
+        @click="bar = true"
+      >
+        <span class="sr-only">Convert to Bar Chart</span>
+        <i class="fa fa-bar-chart fa-2x" aria-hidden="true"></i>
+      </n-button>
+      <n-button
         flavor="Light"
         small
         title="Flip Axis"
-        v-if="!(data.fieldX == 'state' && typeof data.fieldY == 'undefined')"
+        v-if="!(data.fieldX == 'state' || typeof data.fieldY != 'undefined')"
         @click="switchAxis = !switchAxis"
       >
         <span class="sr-only">Switch Axis</span>
@@ -64,16 +74,6 @@
       >
         <span class="sr-only">Convert to Country Map</span>
         <i class="fa fa-globe fa-2x" aria-hidden="true"></i>
-      </n-button>
-      <n-button
-        title="Convert to Bar Chart"
-        flavor="Light"
-        small
-        v-if="showBarChart"
-        @click="bar = true"
-      >
-        <span class="sr-only">Convert to Bar Chart</span>
-        <i class="fa fa-bar-chart fa-2x" aria-hidden="true"></i>
       </n-button>
     </div>
     <state-heat-map
@@ -373,7 +373,6 @@ export const C3Handler = {
               },
             },
           };
-          console.log(c3Data);
           return c3Data;
         } else {
           // display as pie chart
@@ -389,6 +388,7 @@ export const C3Handler = {
               type: "pie",
             },
           };
+          console.log(c3Data);
           return c3Data;
         }
       }
