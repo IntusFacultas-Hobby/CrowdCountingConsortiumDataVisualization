@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
+from difflib import SequenceMatcher
 from core.models import DataPoint
 import csv
 import os
@@ -30,6 +31,8 @@ SOURCE_1 = 22
 SOURCE_2 = 23
 SOURCE_3 = 24
 
+CUT_OFF = .85
+
 
 class Command(BaseCommand):
     help = 'Stages available data found in folders. Defaults to data for 2019 and 2020'
@@ -57,7 +60,8 @@ class Command(BaseCommand):
         # Sometimes they input unknown number. sometimes they input numerous. Who knows at this point
 
         #
-        blacklist = ["N/A", "", "unknown number", "numerous", "see above"]
+        blacklist = ["N/A", "", "unknown number",
+                     "numerous", "see above", "a few", "unknown", 'unclear', "several"]
         if value is not None and value not in blacklist:
             return value
         return None
@@ -68,21 +72,28 @@ class Command(BaseCommand):
         def check_claim(value):
             valid_claims = [
                 "CIVIL RIGHTS", "BLACKLIVESMATTER",
-                "BLACK LIVES MATTER", "POLICE BRUTALITY",
-                "POLICE VIOLENCE", "BREONNA TAYLOR",
+                "BLACK LIVES MATTER", "POLICE BRUTALITY", "AGAINST POLICE BRUTALITY",
+                "POLICE VIOLENCE", "AGAINST POLICE VIOLENCE", "BREONNA TAYLOR",
                 "GEORGE FLOYD", "JUSTICE",
+                "ANTIRACISM", "ANTI-RACISM",
+                "RACIAL JUSTICE",
+                "AGAINST RACISM",
+                "DEFUND THE POLICE", "DEFUNDING POLICE",
+                "BLACK LIVES LOST", "ABOLISHING THE POLICE",
             ]
+
             for claim in valid_claims:
                 if claim in value:
                     return True
             return False
+
         if not os.path.isdir("./Filtered"):
             os.mkdir("./Filtered")
         if not os.path.isdir(f"./Filtered/{year}"):
             os.mkdir(f"./Filtered/{year}")
-        with open(f'{year}/{month}.csv', 'r') as fin, open(f'Filtered/{year}/{month}.csv', 'w', newline="") as fout:
+        with open(f'{year}/{month}.csv', 'r') as fin, open(f"excludedValues.txt", "w+") as exc, open(f'Filtered/{year}/{month}.csv', 'w', newline="") as fout:
             valid_countries = ["US", "USA"]
-            COUNTRY_CLAIM = 4
+            COUNTRY_COLUMN = 4
             CLAIM_COLUMN = 13
             writer = csv.writer(fout, delimiter=",")
             row_count = 0
@@ -173,8 +184,11 @@ class Command(BaseCommand):
 
                     row_count += 1
                     continue
-                if row[COUNTRY_CLAIM].upper() in valid_countries and check_claim(row[CLAIM_COLUMN].upper()):
+                valid = check_claim(row[CLAIM_COLUMN].upper())
+                if row[COUNTRY_COLUMN].upper() in valid_countries and valid:
                     writer.writerow(row)
+                else:
+                    exc.write(f"{row[CLAIM_COLUMN]}\n")
 
         print("Done")
 
