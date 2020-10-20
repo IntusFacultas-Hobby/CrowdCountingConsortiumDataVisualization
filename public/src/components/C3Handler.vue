@@ -117,7 +117,6 @@ export const C3Handler = {
      */
     country: {
       handler() {
-        console.log("fire");
         const self = this;
         setTimeout(() => {
           self.handler.$emit("destroy");
@@ -179,11 +178,23 @@ export const C3Handler = {
       return !this.bar;
     },
     title() {
-      let title = `Events by ${this.data.fieldXLabel}`;
-      if (this.data.fieldYLabel) {
-        title += ` vs # of ${this.data.fieldYLabel}`;
+      if (!this.switchAxis) {
+        let title = `${this.data.fieldXLabel}`;
+        if (this.data.fieldYLabel) {
+          title += ` vs # of ${this.data.fieldYLabel}`;
+        } else {
+          title = "Events by " + title;
+        }
+        return title;
+      } else {
+        let title = `${this.data.fieldXLabel}`;
+        if (this.data.fieldYLabel) {
+          title += `# of ${this.data.fieldYLabel} vs ${title}`;
+        } else {
+          title = title + " by event";
+        }
+        return title;
       }
-      return title;
     },
     tooManyValues() {
       const dataYLength = this.data?.dataY?.length ?? 0;
@@ -313,14 +324,28 @@ export const C3Handler = {
         } else if (this.bar) {
           // display as bar graph
           const self = this;
-          let columns = ["Events"];
-          self.data.dataX.forEach((dataset) => {
-            columns.push(dataset.count);
-          });
-          const reducer = (acc, val) => {
-            acc.push(val[self.data.fieldX]);
-            return acc;
-          };
+          let columns = [self.switchAxis ? self.data.fieldXLabel : "Events"];
+          let categories = [];
+          if (self.switchAxis) {
+            const reducer = (acc, val) => {
+              acc.push(val.count);
+              return acc;
+            };
+            self.data.dataX.forEach((dataset) => {
+              columns.push(dataset[self.data.fieldX]);
+            });
+            categories = self.data.dataX.reduce(reducer, []);
+          } else {
+            const reducer = (acc, val) => {
+              acc.push(val[self.data.fieldX]);
+              return acc;
+            };
+            self.data.dataX.forEach((dataset) => {
+              columns.push(dataset.count);
+            });
+            categories = self.data.dataX.reduce(reducer, []);
+          }
+
           let c3Data = {
             ...self.c3Data,
             data: {
@@ -331,19 +356,24 @@ export const C3Handler = {
               y: {
                 label: {
                   position: "outer-middle",
-                  text: "Number of Events",
+                  text: self.switchAxis
+                    ? self.data.fieldXLabel
+                    : "Number of Events",
                 },
               },
               x: {
                 label: {
-                  text: self.data.fieldXLabel,
+                  text: self.switchAxis
+                    ? "Number of Events"
+                    : self.data.fieldXLabel,
                   position: "outer-center",
                 },
                 type: "category",
-                categories: self.data.dataX.reduce(reducer, []),
+                categories: categories,
               },
             },
           };
+          console.log(c3Data);
           return c3Data;
         } else {
           // display as pie chart
