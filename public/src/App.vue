@@ -65,10 +65,11 @@
           </select-me>
           <n-label for="fieldselect2">Select field to graph on Y axis</n-label>
           <select-me
+            :disabled="newFieldX.length == 0"
             name="fieldselect2"
             :multi-select="false"
             v-model="newFieldY"
-            :options="headers.filter((x) => x.value != newFieldX.value)"
+            :options="headersToCrossGraph"
           >
           </select-me>
         </div>
@@ -267,19 +268,29 @@
           <c3-handler
             v-else
             v-for="(graph, index) in graphs"
+            @delete="graphs = graphs.filter((g) => g.id != graph.id)"
             :key="`graph-${index}`"
             :data="graph"
           >
           </c3-handler>
+          <div class="grapharea--tooltip" v-if="graphs.length != 0 && showTip">
+            <text-content
+              >Add additional graphs with the Add Graph Button!</text-content
+            >
+            <web-link @click="showTip = false" href="#">Hide this</web-link>
+          </div>
         </div>
         <div class="buttoncontainer">
-          <n-button flavor="Primary" @click="showFilters = true">
+          <n-button flavor="Primary" @click="showFilters = !showFilters">
             Filters
           </n-button>
           <n-button flavor="Warning" @click="openModal(newGraphModal)">
             Add Graph
           </n-button>
-          <n-button flavor="Info" @click="showTableConfiguration = true">
+          <n-button
+            flavor="Info"
+            @click="showTableConfiguration = !showTableConfiguration"
+          >
             Configure Table
           </n-button>
           <div class="pagination-controls">
@@ -459,11 +470,13 @@ export default {
   data() {
     return {
       graphs: [],
+      showTip: true,
       selectedItem: {
         sources: [],
       },
 
       // these are for adding new graphs
+      availableGraphId: 0,
       newGraphOption: "single",
       newFieldX: [],
       newFieldY: [],
@@ -609,6 +622,10 @@ export default {
     console.log(this);
   },
   computed: {
+    headersToCrossGraph() {
+      const self = this;
+      return self.headers.filter((x) => x.value != self.newFieldX?.[0]?.value);
+    },
     formattedFilters() {
       let default_filters = {
         page_size: this.pagination.pageSize,
@@ -689,6 +706,7 @@ export default {
         })
         .then((response) => {
           let newGraph = {
+            id: self.availableGraphId++,
             fieldXLabel: self.newFieldX[0].text,
             fieldX: self.newFieldX[0].value,
             dataX: response.data.x,
@@ -891,6 +909,31 @@ div.grapharea {
   min-height: 500px;
   display: flex;
   flex-wrap: wrap;
+  &--tooltip {
+    border: 1px dashed #636e72;
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 2em;
+    align-items: center;
+    background-color: #f3f3f3;
+    position: relative;
+    height: 500px;
+    max-width: 50%;
+    flex: 1;
+    &::after {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      pointer-events: none;
+      bottom: 0;
+      content: "";
+      border-radius: 5px;
+      border: 1em solid white;
+    }
+  }
   &--empty {
     border: 1px dashed #636e72;
     display: flex;

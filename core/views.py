@@ -176,7 +176,7 @@ class GraphData(APIView):
         del filters["page"]
         queryset = DataPoint.objects.all()
         if "exclude" in filters:
-            exclude_dict = json.loads(filters["exclude"])
+            exclude_dict = filters["exclude"]
             for key in exclude_dict:
                 expression = {}
                 expression[key] = exclude_dict[key]
@@ -187,8 +187,11 @@ class GraphData(APIView):
         )
 
         if field_y is None:
+            order_by = "-count"
+            if field_x == 'date':
+                order_by = 'date'
             data_x = queryset.values(field_x).annotate(
-                count=Count('pk', distinct=True)).order_by()
+                count=Count('pk', distinct=True)).order_by(order_by)
             # we aren't cross graphing
             # ergo just city (events per city)
             return Response({
@@ -211,10 +214,15 @@ class GraphData(APIView):
                 "reported_police_injuries",
                 "reported_property_damage",
             ]
+            order_by = "-y"
+            if field_x == 'date':
+                order_by = 'date'
             if field_y in numerical:
-                data_y = queryset.values(field_x).annotate(y=Sum(field_y))
+                data_y = queryset.values(field_x).annotate(
+                    y=Sum(field_y)).order_by(order_by)
             else:
-                data_y = queryset.values(field_x).annotate(y=Count(field_y))
+                data_y = queryset.values(field_x).annotate(
+                    y=Count(field_y)).order_by(order_by)
             return Response({
                 "x": [],
                 "y": data_y
