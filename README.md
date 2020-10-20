@@ -29,6 +29,10 @@ Perform the following steps in the console of your choice. I used Bash.
 3. Run `pip install -r requirements.txt`
 4. Run `python manage.py migrate`
 5. Run `python manage.py stagedata --start 2019 --end 2020`
+6. In another command window, `cd` into the `public` directory, and run `npm install`
+7. In the same command window, run `npm run serve` from the `public` directory
+8. In the original command window, run `python manage.py runserver`
+9. Open a browser and visit localhost:8000
 
 ## Data Ingest Instructions
 
@@ -88,3 +92,12 @@ ValueError: invalid literal for int() with base 10: 'see above'
 ```
 
 You'll need to go into `core/management/commands/stagedata.py`, `line 60` and add the offending data to the blacklist.
+
+## Usage
+
+This tool will allow you to filter the consumed data points by almost any available field, as well as filter out
+results that have blank (ergo no data) fields as need be.
+
+The graphing function will produce a graph based on the current filters you have inputed (keep in mind that blank
+values can screw up the graph, so you'll probably want to filter those out if your graphs aren't working as expected.
+I could fix this if I wasn't just bodging this together, but its 2:30 AM and I'm tired.)
