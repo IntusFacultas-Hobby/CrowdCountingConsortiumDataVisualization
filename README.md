@@ -38,6 +38,8 @@ Perform the following steps in the console of your choice. I used Bash.
 
 This project can handle any set of years of data, assuming the data follows the following format:
 
+**Warning**: Performance drops preciptiously with additional years, as graphing such large datasets requires a lot of computation and the sqlite database isn't performant enough, nor my queries optimized enough to handle the dataset gracefully. Take this into consideration when loading your data.
+
 The CSV must have the headers in the following order:
 
 - CityTown

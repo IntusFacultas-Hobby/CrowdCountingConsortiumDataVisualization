@@ -27,6 +27,7 @@
       :header="true"
       top-offset="50px"
       :footer="true"
+      :background-dismiss="false"
     >
       <template v-slot:header>
         <section-title>New Graph</section-title>
@@ -83,7 +84,8 @@
             <n-button
               :disabled="
                 (newGraphOption == 'single' && !newFieldX) ||
-                  (newGraphOption == 'double' && (!newFieldX || !newFieldY))
+                  (newGraphOption == 'double' && (!newFieldX || !newFieldY)) ||
+                  submittingGraph
               "
               flavor="Primary"
               @click="addGraph"
@@ -91,6 +93,7 @@
               Add Graph
             </n-button>
             <n-button
+              :disabled="submittingGraph"
               flavor="Light"
               @click="
                 cancelGraph();
@@ -476,6 +479,7 @@ export default {
       },
 
       // these are for adding new graphs
+      submittingGraph: false,
       availableGraphId: 0,
       newGraphOption: "single",
       newFieldX: [],
@@ -692,6 +696,7 @@ export default {
       ) {
         return;
       }
+      this.submittingGraph = true;
       let data = {
         fieldX: this.newFieldX[0].value,
         filters: this.formattedFilters,
@@ -705,6 +710,7 @@ export default {
           params: data,
         })
         .then((response) => {
+          self.submittingGraph = false;
           let newGraph = {
             id: self.availableGraphId++,
             fieldXLabel: self.newFieldX[0].text,
@@ -720,6 +726,7 @@ export default {
           self.cancelGraph();
         })
         .catch((error) => {
+          self.submittingGraph = false;
           console.error(error);
           self.$alert({
             flavor: "Danger",

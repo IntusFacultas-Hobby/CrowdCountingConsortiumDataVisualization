@@ -63,7 +63,8 @@ class Command(BaseCommand):
         blacklist = ["N/A", "", "unknown number",
                      "numerous", "see above", "a few", "unknown",
                      'unclear', "several", "unspecified", "few", "some",
-                     "a number", 'more than a dozen']
+                     "a number", 'more than a dozen', '']
+        value = value.strip()
         if value is not None and value not in blacklist:
             return value
         return None
